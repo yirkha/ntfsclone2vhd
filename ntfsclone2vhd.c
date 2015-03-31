@@ -18,7 +18,7 @@
 */
 
 #include <fcntl.h>
-#include <stdint.h>
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -368,11 +368,11 @@ int main(int argc, char** argv)
   }
   fprintf(stderr,
     "Input has a valid ntfsclone header:\n"
-    "    Device size:    %10llu B (%u MB)\n"
-    "    Cluster size:   %10u B\n"
-    "    Total clusters: %10llu\n"
-    "    Used clusters:  %10llu\n"
-    "    Image data ofs: 0x%08X\n"
+    "    Device size:    %10" PRIu64 " B (%u MB)\n"
+    "    Cluster size:   %10" PRIu32 " B\n"
+    "    Total clusters: %10" PRIu64 "\n"
+    "    Used clusters:  %10" PRIu64 "\n"
+    "    Image data ofs: 0x%08" PRIx32 "\n"
     "\n",
     ihdr.device_size, (unsigned)(ihdr.device_size / 1048576),
     ihdr.cluster_size, ihdr.nr_clusters, ihdr.inuse, ihdr.offset_to_image_data);
