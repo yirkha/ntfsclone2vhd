@@ -337,7 +337,9 @@ int main(int argc, char** argv)
 
   if (strcmp(argv[1], "-") == 0) {
     ifd = 0;
+#ifdef _WIN32
     setmode(ifd, O_BINARY);
+#endif
   } else {
     ifd = open(argv[1], O_RDONLY | O_BINARY | O_SEQUENTIAL);
     if (ifd < 0) {
