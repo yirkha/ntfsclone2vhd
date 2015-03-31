@@ -2,3 +2,5 @@ out-*
 tmp-*
 *.o
 ntfsclone2vhd
+*.sdf
+*.suo
