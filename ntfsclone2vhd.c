@@ -363,7 +363,7 @@ int main(int argc, char** argv)
   if (memcmp(ihdr.magic, NTFSCLONE_IMG_MAGIC, NTFSCLONE_IMG_MAGIC_SIZE) != 0 ||
       ihdr.major_ver != NTFSCLONE_IMG_VER_MAJOR)
   {
-    fprintf(stderr, "Source file does not have a valid ntfsclone header.");
+    fprintf(stderr, "Source file does not have a valid ntfsclone header.\n");
     goto error;
   }
   fprintf(stderr,
