@@ -19,13 +19,17 @@ Converts ntfsclone "special image" to dynamic VHD virtual disk.
 
 Usage:
 
-    ntfsclone2vhd <input.ntfsclone> <output.vhd>
+    ntfsclone2vhd [-2] <input.ntfsclone> <output.vhd>
         - Converts input.ntfsclone to output.vhd
+        - Use -2 to perform the conversion in two passes,
+          necessary for metadata-only source images
 
     ntfsclone2vhd - <output.vhd>
         - Converts standard input to output.vhd,
           can be piped from `ntfsclone -s` directly
 ```
+
+### Notes
 
 A standard MBR sector is added at the beginning of the VHD file, so that the image can be nicely mounted by Windows. For this reason the output will be one cluster larger.
 
@@ -34,6 +38,12 @@ The output VHD file will be also slightly larger because `ntfsclone` works on a 
 If the NTFS partition contains protected files (e.g. user home directories), trying to access them from another Windows installation will result in access denied errors. It is necessary to change the permissions, use low-level NTFS utilities or mount the disk e.g. in a Linux VM, where the permissions are not enforced.
 
 Also IIRC I read somewhere that mounting a VHD with the same filesystem (by internal IDs) as already present on the same computer can create weird problems, take care.
+
+### Metadata-only images
+
+The `ntfsclone` tool allows creating a metadata-only image by specifying the `-m` option or `--metadata`. This sparse copy contains only the necessary clusters to be able to browse through all directories and file meta data but omits the actual file contents. The resulting files have a slightly different format and need to be processed by `ntfsclone2vhd` with an extra command line switch `-2` in order to enable the necessary two-pass conversion mode.
+
+Piping data in through `stdin` is not possible in the two pass-mode. Also the size of the output VHD can be significantly larger than the input for these images because of how sparsely the metadata is laid out on the drive - don't be surprised by something like a 5 times increase.
 
 
 ## How to build

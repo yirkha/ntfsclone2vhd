@@ -304,6 +304,13 @@ int read_full(int fd, void* dst, unsigned num)
   return (int)(ptr - (char*)dst);
 }
 
+int twopass_comp(const void* va, const void* vb)
+{
+  const uint64_t* a = (const uint64_t*)va;
+  const uint64_t* b = (const uint64_t*)vb;
+  return ((a[0] > b[0]) - (a[0] < b[0]));
+}
+
 
 int main(int argc, char** argv)
 {
@@ -316,8 +323,10 @@ int main(int argc, char** argv)
     fprintf(stderr,
       "Usage:\n"
       "\n"
-      "    ntfsclone2vhd <input.ntfsclone> <output.vhd>\n"
+      "    ntfsclone2vhd [-2] <input.ntfsclone> <output.vhd>\n"
       "        - Converts input.ntfsclone to output.vhd\n"
+      "        - Use -2 to perform the conversion in two passes,\n"
+      "          necessary for metadata-only source images\n"
       "\n"
       "    ntfsclone2vhd - <output.vhd>\n"
       "        - Converts standard input to output.vhd,\n"
@@ -333,9 +342,23 @@ int main(int argc, char** argv)
   int       ofd              = -1;
   uint32_t* bat              = NULL;
   uint8_t*  block            = NULL;
+  int       twopass          = 0;
+  uint64_t* twopass_offsets  = NULL;
+  unsigned  twopass_size     = 0;
+  unsigned  twopass_capacity = 0;
   int       argp             = 1;
 
+  if (strcmp(argv[argp], "-2") == 0) {
+    twopass = 1;
+    fprintf(stderr, "Two-pass mode enabled.\n");
+    argp++;
+  }
+
   if (strcmp(argv[argp], "-") == 0) {
+    if (twopass) {
+      fprintf(stderr, "Two-pass mode cannot be used with stdin input.\n");
+      goto error;
+    }
     ifd = 0;
 #ifdef _WIN32
     setmode(ifd, O_BINARY);
@@ -400,6 +423,75 @@ int main(int argc, char** argv)
         goto error;
       }
     }
+  }
+
+
+  if (twopass) {
+    fprintf(stderr, "Scanning input file:\n");
+
+    uint64_t input_offset   = ihdr.offset_to_image_data;
+    uint64_t target_cluster = 0;
+
+    for (;;) {
+      if (twopass_size % 64 == 0)
+        fprintf(stderr, "    %3d%%...\r", (int)(100 * twopass_size / ihdr.inuse));
+
+      char cmd;
+      int len = read_full(ifd, &cmd, sizeof(cmd));
+      if (len != sizeof(cmd)) {
+        if (len == 0) {
+          /* This means EOF - the count in ihdr.inuse is apparently unreliable. */
+          break;
+        }
+        perror("Could not read source data");
+        goto error;
+      }
+      input_offset += 1;
+
+      if (cmd == 0) {
+        int64_t count;
+        if (read_full(ifd, &count, sizeof(count)) != sizeof(count)) {
+          perror("Could not read source data");
+          goto error;
+        }
+
+        if (target_cluster + count > ihdr.nr_clusters) {
+          fprintf(stderr, "Invalid cluster seek in source file.\n");
+          goto error;
+        }
+
+        input_offset += sizeof(count);
+        target_cluster += count;
+      } else if (cmd == 1) {
+        if (lseek64(ifd, input_offset + ihdr.cluster_size, SEEK_SET) != input_offset + ihdr.cluster_size) {
+          perror("Could not seek in source file");
+          goto error;
+        }
+
+        if (twopass_size >= twopass_capacity) {
+          twopass_capacity = (twopass_capacity > 0) ? (2 * twopass_capacity) : 1024;
+          void* bigger = realloc(twopass_offsets, twopass_capacity * 2 * sizeof(*twopass_offsets));
+          if (!bigger) {
+            perror("Could not allocate two-pass index");
+            goto error;
+          }
+          twopass_offsets = (uint64_t*)bigger;
+        }
+        twopass_offsets[twopass_size * 2 + 0] = target_cluster;
+        twopass_offsets[twopass_size * 2 + 1] = input_offset;
+        twopass_size++;
+
+        input_offset += ihdr.cluster_size;
+        target_cluster += 1;
+      } else {
+        fprintf(stderr, "Lost sync in source file.\n");
+        goto error;
+      }
+    }
+
+    fprintf(stderr, "    sorting...\r");
+    qsort(twopass_offsets, twopass_size, 2 * sizeof(*twopass_offsets), &twopass_comp);
+    fprintf(stderr, "    100%% done\r");
   }
 
 
@@ -477,6 +569,7 @@ int main(int argc, char** argv)
   uint64_t clusters_read   = 0;
   uint64_t sectors_to_skip = 0;
   unsigned block_no        = 0;
+  unsigned twopass_index   = 0;
 
   while (clusters_read < ihdr.nr_clusters) {
     if (sectors_to_skip >= sectors_per_block) {
@@ -509,9 +602,27 @@ int main(int argc, char** argv)
         fprintf(stderr, "    %3d%%...\r", (int)(100 * clusters_read / ihdr.nr_clusters));
 
       char cmd;
-      if (read_full(ifd, &cmd, sizeof(cmd)) != sizeof(cmd)) {
-        perror("Could not read source data");
-        goto error;
+      if (!twopass) {
+        if (read_full(ifd, &cmd, sizeof(cmd)) != sizeof(cmd)) {
+          perror("Could not read source data");
+          goto error;
+        }
+      } else {
+        if (twopass_index >= twopass_size) {
+          fprintf(stderr, "Unexpected EOF in two-pass mode.\n");
+          goto error;
+        }
+        if (clusters_read < twopass_offsets[twopass_index * 2 + 0]) {
+          uint64_t count = twopass_offsets[twopass_index * 2 + 0] - clusters_read;
+          clusters_read += count;
+          if (count * sectors_per_cluster < sectors_per_block - ofs) {
+            ofs += (unsigned)count * sectors_per_cluster;
+          } else {
+            sectors_to_skip = count * sectors_per_cluster - (sectors_per_block - ofs);
+            break;
+          }
+        }
+        cmd = 1;
       }
 
       if (cmd == 0) {
@@ -534,6 +645,13 @@ int main(int argc, char** argv)
         }
       } else if (cmd == 1) {
         dirty = 1;
+        if (twopass) {
+          if (lseek64(ifd, twopass_offsets[twopass_index * 2 + 1], SEEK_SET) != twopass_offsets[twopass_index * 2 + 1]) {
+            perror("Could not seek in source file");
+            goto error;
+          }
+          twopass_index++;
+        }
         if (read_full(ifd, block + 512 + (ofs * 512), ihdr.cluster_size) != ihdr.cluster_size) {
           perror("Could not read source data");
           goto error;
@@ -594,6 +712,7 @@ int main(int argc, char** argv)
 error:
   free(block);
   free(bat);
+  free(twopass_offsets);
   if (ofd > 2)
     close(ofd);
   if (ifd > 2)
