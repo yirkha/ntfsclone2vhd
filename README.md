@@ -40,15 +40,15 @@ Also IIRC I read somewhere that mounting a VHD with the same filesystem (by inte
 
 The project consists from just one `.c` file. I have used C for better portability, no external libraries needed.
 
-### Windows + MS Visual Studio 2013
+### Windows + MS Visual Studio 2017
 
 1. Clone the project.
-1. Open the suplied solution `ntfsclone2vhd.sln` in Visual Studio.
 2. Build the project 
+2. Open the supplied solution `ntfsclone2vhd.sln` in Visual Studio 2017.
 
 *Note:* Projects are built as "multibyte", there is no support for Unicode paths.
 
-*Note 2:* The `.c` file is actually compiled as C++ because Visual Studio compiler does not support C99 syntax.
+*Note 2:* The `.c` file might actually have to be "compiled as C++" in older versions of Visual Studio because their compiler did not support C99 syntax.
 
 ### Linux and other Unix-based systems
 
