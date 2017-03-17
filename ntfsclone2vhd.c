@@ -329,24 +329,25 @@ int main(int argc, char** argv)
 
   srand((unsigned)time(NULL));
 
-  int ifd         = -1;
-  int ofd         = -1;
-  uint32_t* bat   = NULL;
-  uint8_t*  block = NULL;
+  int       ifd              = -1;
+  int       ofd              = -1;
+  uint32_t* bat              = NULL;
+  uint8_t*  block            = NULL;
+  int       argp             = 1;
 
-
-  if (strcmp(argv[1], "-") == 0) {
+  if (strcmp(argv[argp], "-") == 0) {
     ifd = 0;
 #ifdef _WIN32
     setmode(ifd, O_BINARY);
 #endif
   } else {
-    ifd = open(argv[1], O_RDONLY | O_BINARY | O_SEQUENTIAL);
+    ifd = open(argv[argp], O_RDONLY | O_BINARY | O_SEQUENTIAL);
     if (ifd < 0) {
       perror("Could not open source file");
       goto error;
     }
   }
+  argp++;
 
   struct stat64 istat;
   if (fstat64(ifd, &istat) < 0) {
@@ -402,7 +403,7 @@ int main(int argc, char** argv)
   }
 
 
-  ofd = open(argv[2], O_CREAT | O_TRUNC | O_WRONLY | O_BINARY | O_SEQUENTIAL, 0660);
+  ofd = open(argv[argp], O_CREAT | O_TRUNC | O_WRONLY | O_BINARY | O_SEQUENTIAL, 0660);
   if (ofd < 0) {
     perror("Could not open destination file");
     goto error;
@@ -473,9 +474,9 @@ int main(int argc, char** argv)
 
   fprintf(stderr, "Converting data:\n");
 
-  uint64_t clusters_read = 0;
+  uint64_t clusters_read   = 0;
   uint64_t sectors_to_skip = 0;
-  unsigned block_no = 0;
+  unsigned block_no        = 0;
 
   while (clusters_read < ihdr.nr_clusters) {
     if (sectors_to_skip >= sectors_per_block) {
@@ -593,9 +594,9 @@ int main(int argc, char** argv)
 error:
   free(block);
   free(bat);
-  if (ofd >= 0)
+  if (ofd > 2)
     close(ofd);
-  if (ifd > 0)
+  if (ifd > 2)
     close(ifd);
   return -1;
 }
