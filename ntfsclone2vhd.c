@@ -2,7 +2,7 @@
   ntfsclone2vhd -
   Converts ntfsclone "special image" to dynamic VHD virtual disk.
 
-  Copyright (c) 2015, Jiri Hruska <jirka@fud.cz>
+  Copyright (c) 2015-2017, Jiri Hruska <jirka@fud.cz>
 
   Permission to use, copy, modify, and/or distribute this software for any
   purpose with or without fee is hereby granted, provided that the above
@@ -51,8 +51,8 @@
   #define htonll(_x) __bswap_64(_x)
 #endif
 
-#define VERSION "1.0"
-#define VERDATE "2015-03-10"
+#define VERSION "1.1"
+#define VERDATE "2017-03-20"
 
 /*** ntfsclone ***/
 

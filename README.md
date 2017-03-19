@@ -14,7 +14,7 @@ I have searched for a solution to convert a `.ntfsclone` image to `.vhd` and mou
 This is a command line utility. The built-in help provides basic usage instructions:
 
 ```
--= ntfsclone2vhd 1.0 - <jirka@fud.cz> 2015-03-10 =-
+-= ntfsclone2vhd 1.1 - <jirka@fud.cz> 2017-03-20 =-
 Converts ntfsclone "special image" to dynamic VHD virtual disk.
 
 Usage:
