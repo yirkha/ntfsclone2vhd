@@ -11,7 +11,7 @@ I have searched for a solution to convert a `.ntfsclone` image to `.vhd` and mou
 
 ## How to use
 
-This is a command line utility.
+This is a command line utility. The built-in help provides basic usage instructions:
 
 ```
 -= ntfsclone2vhd 1.0 - <jirka@fud.cz> 2015-03-10 =-
@@ -37,7 +37,7 @@ The output VHD file will be also slightly larger because `ntfsclone` works on a 
 
 If the NTFS partition contains protected files (e.g. user home directories), trying to access them from another Windows installation will result in access denied errors. It is necessary to change the permissions, use low-level NTFS utilities or mount the disk e.g. in a Linux VM, where the permissions are not enforced.
 
-Also IIRC I read somewhere that mounting a VHD with the same filesystem (by internal IDs) as already present on the same computer can create weird problems, take care.
+Also IIRC I read somewhere that mounting a VHD with the same filesystem (by internal IDs) as already present on the same computer can create weird problems, take care. You might look at the `--new-serial` and `--new-half-serial` options of `ntfsclone` if this could be a problem.
 
 ### Metadata-only images
 
@@ -46,15 +46,22 @@ The `ntfsclone` tool allows creating a metadata-only image by specifying the `-m
 Piping data in through `stdin` is not possible in the two pass-mode. Also the size of the output VHD can be significantly larger than the input for these images because of how sparsely the metadata is laid out on the drive - don't be surprised by something like a 5 times increase.
 
 
+## How to download binaries
+
+Some prebuilt binaries are available on the [Releases page](https://github.com/yirkha/ntfsclone2vhd/releases). In particular for Windows, because it is not so common and easy to build programs from source on Windows.
+
+
 ## How to build
 
-The project consists from just one `.c` file. I have used C for better portability, no external libraries needed.
+The project consists from just one `.c` file. I have used C for better portability. No external libraries are needed.
 
 ### Windows + MS Visual Studio 2017
 
-1. Clone the project.
-2. Build the project 
+1. Clone the project repository.
 2. Open the supplied solution `ntfsclone2vhd.sln` in Visual Studio 2017.
+3. Choose the wanted configuration ("Release", "x64" in most cases).
+4. Build the project.
+5. The output binary `ntfsclone2vhd.exe` is in the related `out-...` directory.
 
 *Note:* Projects are built as "multibyte", there is no support for Unicode paths.
 
@@ -62,19 +69,15 @@ The project consists from just one `.c` file. I have used C for better portabili
 
 ### Linux and other Unix-based systems
 
-1. Clone the project.
-2. Run `make`.
+1. Clone the project repository.
+2. Run `make` in its directory (`make DEBUG=1` if you want a debug binary).
+3. The output binary `ntfsclone` is in the project's directory.
 
-*Note:* There are hundreds of different *nix systems out there, I have tested only a few and the `Makefile` is really simple. You might need to modify a few things to get it compile. Sane patches are welcome.
+*Note:* There are hundreds of different *nix systems out there, I have tested only a few and the `Makefile` is really simple. You might need to modify a few things to get it compile. Reasonable patches are welcome.
 
 ### Other systems/platforms
 
-You need to figure how to compile the project yourself, shouldn't be so hard, it's just one C file. Good luck. Again, sane patches are welcome.
-
-
-## Built binaries
-
-Because it is not so common and easy to build stuff from source on Windows, pre-built binaries for Windows are available on the [Releases page](https://github.com/yirkha/ntfsclone2vhd/releases).
+You need to figure out how to compile the project yourself. It shouldn't be so hard, it's just one C file. Good luck. Again, reasonable patches are welcome.
 
 
 ## License
